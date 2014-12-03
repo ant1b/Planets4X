@@ -7,19 +7,17 @@
 #Based on http://www.raywenderlich.com/38732/multiplayer-game-programming-for-teens-with-python
 #Tutotrial by Julian Meyer, November 11, 2013
 
-#run Frame.py from Powershell using following two lines:
-#cd "c:\...path-to-Planets4X-folder..."
-#c:\...path-to-pythonXX..\python Frame.py
-#Where XX stand for python version
-
-#Developped and tested under python 3.2
-#Requires pygame (dev and test 1.9.2)
-#Requires PIL (dev and test Pillow 2.6.1)
-
 #v00.00: 20141028, draws grid, places ship icon upon mouse click over grid.
+# Developped and tested under python 3.2
+# Requires pygame (dev and test 1.9.2)
+# Requires PIL (dev and test Pillow 2.6.1)
+# run Frame.py from Powershell using following two lines:
+#   cd "c:\...path-to-Planets4X-folder..."
+#   c:\...path-to-pythonXX..\python Frame.py
+# Where XX stand for python version
 #v00.01: 20141028, random places one planet inside grid, click places ships with line of sight 1 block h or v, click on planet for owning (color only).
 #v00.02: 20141029, Works as a game, discover hidden planets moving ship around using mouse. Ship movement is cumbersome.
-#v00.03: 20141030, Works as game. Ability to split ship fleets in half by right clicking next-door tile. 
+#v00.03: 20141030, Works as game. Ability to split ship fleets in half by right clicking next-door tile.
 #	Movements restricted to one tile per turn.
 #	Fleet movement eased, left click on destination next-door tile.
 #	Automerge fleets when more than one ship eligible (movement capcity undepleted) to reach left-clicked tile.
@@ -65,23 +63,21 @@
 #		c:\python32\python server.py
 #	Default internet browser should now display Brython front webpage.
 #	Change web address to: http://localhost:8000/Planets4X/index.html
-#	Webpage changes to display square black area filling up window, 
+#	Webpage changes to display square black area filling up window,
 #	and superimposed part transparent orange square grid
 #	and one green X-like cross
 #	All elements are SVG objects generated from python code via Brython
 #	Cross can be moved around within the black area by mouse pointing and clicking.
 #v01.01: 20141203, Flask single-page application for hosting on pythonanywhere.com
+# Github repository: https://github.com/ant1b/Planets4X/
+# Based on Flask live coding session, https://www.youtube.com/watch?v=gegrALNqdro, part 1 to 4, by Michael Herman
 #	Access on: ant1serv.pythonanywhere.com
 #	On access, player registered to game with some not-owned planet left, or fresh game
 #	Reload page means new access
 #	First player on fresh game determines board size
 #	Allocate color to player, unique within one game
-#	Fresh game randomly distributes planets over 10% of possible board coordinates 
+#	Fresh game randomly distributes planets over 10% of possible board coordinates
 #	Allocate home planet at coordinates within board
 #	Locates initial spaceship at planet coordinates
 #	Draws svg cross with player-id color at spacehips coordinates
 #	Spaceship coordinates can be modified by clicking destination coordinates on board
-
-
-
-
