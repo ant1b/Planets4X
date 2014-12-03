@@ -70,18 +70,17 @@
 #	and one green X-like cross
 #	All elements are SVG objects generated from python code via Brython
 #	Cross can be moved around within the black area by mouse pointing and clicking.
-
-
-
-
-
-
-
-
-
-
-
-
+#v01.01: 20141203, Flask single-page application for hosting on pythonanywhere.com
+#	Access on: ant1serv.pythonanywhere.com
+#	On access, player registered to game with some not-owned planet left, or fresh game
+#	Reload page means new access
+#	First player on fresh game determines board size
+#	Allocate color to player, unique within one game
+#	Fresh game randomly distributes planets over 10% of possible board coordinates 
+#	Allocate home planet at coordinates within board
+#	Locates initial spaceship at planet coordinates
+#	Draws svg cross with player-id color at spacehips coordinates
+#	Spaceship coordinates can be modified by clicking destination coordinates on board
 
 
 
