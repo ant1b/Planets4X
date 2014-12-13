@@ -260,7 +260,7 @@ def upknownuniverse():
             else:
                 for j in p4x_server.games[a].shiplist:
                     if j.ownership == request.form.get('session_id'):
-                        if IsOneTileMove(j.coord[0], j.coord[1], k.coord[0], k.coord[1]):
+                        if IsOneTileMove(j.coord[0], j.coord[1], k.coord[0], k.coord[1]) or (j.coord[0]==k.coord[0] and j.coord[1]==k.coord[1]):
                             temp = "planet" + str( cnt )
                             data["x_"+temp] = str( k.coord[0] )
                             data["y_"+temp] = str( k.coord[1] )

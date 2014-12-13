@@ -79,7 +79,6 @@ class Planets4Xgame():
 ##            print("players: ", int(dico["players"]))
 ##            print("homeplanet", self.planetlist[len(self.planetlist)-1].coord)
 
-
         def click(self, ev):
             cx = math.floor((ev.clientX/self.boardscale)-0.5)
             cy = math.floor((ev.clientY/self.boardscale)-0.5)
@@ -160,15 +159,29 @@ class Planets4Xgame():
             for k in self.shiplist:
                 while cnt<self.newPan.childElementCount and self.newPan.children[cnt].tagName!="polygon":
                     cnt = cnt + 1
-                temp = str(k.coord[0]*self.boardscale) + "," + str((k.coord[1]+0.5)*self.boardscale)
-                temp = temp + " " + str((k.coord[0]+1)*self.boardscale) + "," + str(k.coord[1]*self.boardscale)
-                temp = temp + " " + str((k.coord[0]+1)*self.boardscale) + "," + str((k.coord[1]+1)*self.boardscale)
+                isinorbit = False
+                for m in self.planetlist:
+                    if k.coord[0] == m.coord[0] and k.coord[1] == m.coord[1]:
+                        isinorbit = True
+                        break
+                if isinorbit:
+                    temp = str((k.coord[0]+0.5)*self.boardscale) + "," + str((k.coord[1]+(5/8))*self.boardscale)
+                    temp = temp + " " + str((k.coord[0]+0.75)*self.boardscale) + "," + str((k.coord[1]+0.5)*self.boardscale)
+                    temp = temp + " " + str((k.coord[0]+0.75)*self.boardscale) + "," + str((k.coord[1]+0.75)*self.boardscale)
+                else:
+                    scale = 0.66
+                    temp = str((k.coord[0]+(0.5-scale/2))*self.boardscale) + "," + str((k.coord[1]+0.5)*self.boardscale)
+                    temp = temp + " " + str((k.coord[0]+(0.5+scale/2))*self.boardscale) + "," + str((k.coord[1]+(0.5-scale/2))*self.boardscale)
+                    temp = temp + " " + str((k.coord[0]+(0.5+scale/2))*self.boardscale) + "," + str((k.coord[1]+(0.5+scale/2))*self.boardscale)
                 if cnt>=self.newPan.childElementCount-1:
                     trgl = svg.polygon(points=temp)
                     self.newPan.appendChild( trgl )
                     #print("S: ", k.coord, " ",  cnt, " / ", self.newPan.childElementCount, " = ", self.newPan.children[cnt].tagName)
                 self.newPan.children[cnt].setAttribute("points", temp)
-                temp = "rgb("+str(k.ownership[0])+","+str(k.ownership[1])+","+str(k.ownership[2])+")"
+                if isinorbit:
+                    temp = "rgb(0,0,0)"
+                else:
+                    temp = "rgb("+str(k.ownership[0])+","+str(k.ownership[1])+","+str(k.ownership[2])+")"
                 self.newPan.children[cnt].setAttribute("fill", temp)
                 self.newPan.children[cnt].setAttribute("fill-opacity", 1)
                 cnt = cnt + 1
@@ -177,6 +190,11 @@ class Planets4Xgame():
                     self.newPan.children[k].setAttribute("fill", "rgb(255,255,255)")
                     self.newPan.children[k].setAttribute("fill-opacity", 0)
                     #print("S: ", len(self.shiplist), " ", k, " / ", self.newPan.childElementCount, " = ", self.newPan.children[k].tagName)
+            for k in self.newPan.children:
+                if k.tagName == "polygon":
+                    temp = self.newPan.removeChild( k )
+                    self.newPan.appendChild( temp )
+
 
         def upknownuniverse(self, req):
             if req.status==200:
