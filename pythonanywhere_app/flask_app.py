@@ -11,6 +11,12 @@ import threading
 def id_generator(size=64, chars=string.ascii_letters + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+def IsOneTileMove(x1,y1,x2,y2):
+    if (abs(x1-x2)==1 and y1==y2) or (x1==x2 and abs(y1-y2)==1):
+        return True
+    else:
+        return False
+
 def PlayerColour(playerID, col):
     bckgd = [0,0,0]
     fgd   = [255,127,39]
@@ -140,6 +146,11 @@ class P4X_Game():
                 NotOwned.append( k )
         return len(NotOwned)
 
+    def thisPlayerColor(self, session_id):
+        for k in self.playerlist:
+            if k.session_id == session_id:
+                return k.color
+
 class P4X_Server():
     def __init__(self):
         self.session_list = []
@@ -157,20 +168,32 @@ class P4X_Server():
             self.games.append( P4X_Game() )
             self.games[len(self.games)-1].defineBoard(x, y)
         #assign player to game
-        self.games[len(self.games)-1].playerlist.append( P4X_Player() )
-        self.games[len(self.games)-1].playerlist[len(self.games[len(self.games)-1].playerlist)-1].session_id = temp
-        temp = PlayerColour(len(self.games[len(self.games)-1].playerlist), self.games[len(self.games)-1].colorlist)
-        self.games[len(self.games)-1].colorlist = temp[0]
-        self.games[len(self.games)-1].playerlist[len(self.games[len(self.games)-1].playerlist)-1].color = temp[1]
+        a = len(self.games)-1
+        self.games[a].playerlist.append( P4X_Player() )
+        b = len(self.games[a].playerlist)-1
+        self.games[a].playerlist[b].session_id = temp
+        temp = PlayerColour(b+1, self.games[a].colorlist)
+        self.games[a].colorlist = temp[0]
+        self.games[a].playerlist[b].color = temp[1]
         #assign home planet to player
-        for k in self.games[len(self.games)-1].planetlist:
+        for k in self.games[a].planetlist:
             if k.ownership == None:
-                k.ownership = self.games[len(self.games)-1].playerlist[len(self.games[len(self.games)-1].playerlist)-1].session_id
+                k.ownership = self.games[a].playerlist[b].session_id
                 #assign one ship to player
-                self.games[len(self.games)-1].shiplist.append( P4X_Spaceship() )
-                self.games[len(self.games)-1].shiplist[len(self.games[len(self.games)-1].shiplist)-1].ownership = self.games[len(self.games)-1].playerlist[len(self.games[len(self.games)-1].playerlist)-1].session_id
-                break
+                self.games[a].shiplist.append( P4X_Spaceship() )
+                self.games[a].shiplist[len(self.games[a].shiplist)-1].ownership = self.games[a].playerlist[b].session_id
+                self.games[a].shiplist[len(self.games[a].shiplist)-1].locateto(k.coord[0], k.coord[1])
+                return
         #self.mutex.release()
+
+    def ThisGameThisPlayer(self, session_id):
+        for g in range(len(self.games)):
+            for p in range(len(self.games[g].playerlist)):
+                if self.games[g].playerlist[p].session_id == session_id:
+                    gp = [g,p]
+                    return gp
+        return False
+
 
 app = Flask(__name__)
 p4x_server = P4X_Server()
@@ -205,16 +228,92 @@ def register():
             'colorid_b':str(p4x_server.games[len(p4x_server.games)-1].playerlist[len(p4x_server.games[len(p4x_server.games)-1].playerlist)-1].color[2]),
             'boardsizex':str(p4x_server.games[len(p4x_server.games)-1].boardsize[0]),
             'boardsizey':str(p4x_server.games[len(p4x_server.games)-1].boardsize[1]),
-            'ownedplanets':str(len(L)),
+#            'ownedplanets':str(len(L)),
             'homeplanetx':str( L[0].coord[0] ),
             'homeplanety':str( L[0].coord[1] )}
+    return jsonify(data)
+
+@app.route('/upknownuniverse', methods=['GET', 'POST'])
+def upknownuniverse():
+    data = {'action': 'undefined'}
+    if request.method == 'POST' and request.form.get('action')=='upknownuniverse':
+        gp = p4x_server.ThisGameThisPlayer( request.form.get('session_id') )
+        if gp:
+            a = gp[0]
+            b = gp[1]
+        else:
+            return jsonify(data)
+        data = {'action':'upknownuniverse', 'session_id':request.form.get('session_id')}
+        cnt = 0
+        for k in p4x_server.games[a].planetlist:
+            if k.ownership == request.form.get('session_id'):
+                temp = "planet" + str( cnt )
+                data["x_"+temp] = str( k.coord[0] )
+                data["y_"+temp] = str( k.coord[1] )
+                data["n_"+temp] = str( k.popul )
+                col = p4x_server.games[a].thisPlayerColor( k.ownership )
+                if col==None: col = [127,127,127]
+                data["r_"+temp] = str( col[0] )
+                data["g_"+temp] = str( col[1] )
+                data["b_"+temp] = str( col[2] )
+                cnt = cnt + 1
+            else:
+                for j in p4x_server.games[a].shiplist:
+                    if j.ownership == request.form.get('session_id'):
+                        if IsOneTileMove(j.coord[0], j.coord[1], k.coord[0], k.coord[1]):
+                            temp = "planet" + str( cnt )
+                            data["x_"+temp] = str( k.coord[0] )
+                            data["y_"+temp] = str( k.coord[1] )
+                            data["n_"+temp] = str( k.popul )
+                            col = p4x_server.games[a].thisPlayerColor( k.ownership )
+                            if col==None: col = [127,127,127]
+                            data["r_"+temp] = str( col[0] )
+                            data["g_"+temp] = str( col[1] )
+                            data["b_"+temp] = str( col[2] )
+                            cnt = cnt + 1
+        #return jsonify(data)
+        cnt = 0
+        for k in p4x_server.games[a].shiplist:
+            if k.ownership == request.form.get('session_id'):
+                temp = "spaceship" + str( cnt )
+                data["x_"+temp] = str( k.coord[0] )
+                data["y_"+temp] = str( k.coord[1] )
+                data["n_"+temp] = str( k.ucount )
+                col = p4x_server.games[a].thisPlayerColor( k.ownership )
+                if col==None: col = [127,127,127]
+                data["r_"+temp] = str( col[0] )
+                data["g_"+temp] = str( col[1] )
+                data["b_"+temp] = str( col[2] )
+                cnt = cnt + 1
+            else:
+                for j in p4x_server.games[a].shiplist:
+                    if j.ownership == request.form.get('session_id'):
+                        if IsOneTileMove(j.coord[0], j.coord[1], k.coord[0], k.coord[1]):
+                            temp = "spaceship" + str( cnt )
+                            data["x_"+temp] = str( k.coord[0] )
+                            data["y_"+temp] = str( k.coord[1] )
+                            data["n_"+temp] = str( k.ucount )
+                            col = p4x_server.games[a].thisPlayerColor( k.ownership )
+                            if col==None: col = [127,127,127]
+                            data["r_"+temp] = str( col[0] )
+                            data["g_"+temp] = str( col[1] )
+                            data["b_"+temp] = str( col[2] )
+                            cnt = cnt + 1
     return jsonify(data)
 
 @app.route('/clickonboard', methods=['POST'])
 def incaseofclick():
     data = False
     if request.method == 'POST' and request.form.get('action')=='clickonboard':
-        data = {"action":"moveover","session_id":request.form.get('session_id'),"clickx":request.form.get('clickx'),"clicky":request.form.get('clicky')}
+        data = {"action":"moveover",
+            "session_id":request.form.get('session_id'),
+            "clickx":request.form.get('clickx'),
+            "clicky":request.form.get('clicky')}
+        gp = p4x_server.ThisGameThisPlayer( request.form.get('session_id') )
+        if not gp: return jsonify(data)
+        for k in p4x_server.games[gp[0]].shiplist:
+            if k.ownership == request.form.get('session_id'):
+                k.locateto( int(request.form.get('clickx')),int(request.form.get('clicky')) )
     return jsonify(data)
 
 if __name__ == '__main__':

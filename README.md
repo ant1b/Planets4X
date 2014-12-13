@@ -1,4 +1,4 @@
 Planets4X
 =========
 
-SImplistic browser multiplayer game
+Simplistic browser multiplayer game

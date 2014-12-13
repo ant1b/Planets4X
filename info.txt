@@ -81,3 +81,7 @@
 #	Locates initial spaceship at planet coordinates
 #	Draws svg cross with player-id color at spacehips coordinates
 #	Spaceship coordinates can be modified by clicking destination coordinates on board
+#v01.02: 20141213, Flask single-page application for hosting on pythonanywhere.com
+# May work as a (rather lamish) game.
+# Explore map to discover grey neutral planets and colored planets pertaining to other players.
+# Click on map to move triangular spaceship, discover up to 4 adjacent tiles.
