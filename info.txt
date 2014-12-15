@@ -88,4 +88,3 @@
 #v01.03: 20141215, Flask single-page application for hosting on pythonanywhere.com
 # Board control materialised with coloured borders using unique player id.
 # Planets change ownership i.e. colour, upon spaceship fly-over.
-    
