@@ -39,6 +39,7 @@ class Planets4Xgame():
                 self.boardsize   = [8,8]
                 self.boardscale  = 50
                 self.owncolorid  = [0,255,0]
+                self.boardcontrol = []
                 if math.floor(browser.window.innerWidth/self.boardsize[0]) < math.floor(browser.window.innerHeight/self.boardsize[1]):
                         self.boardscale  = math.floor(browser.window.innerWidth/(self.boardsize[0]+1))
                 else:
@@ -60,8 +61,6 @@ class Planets4Xgame():
         def joingame(self, req):
             self.multiplayer = False
             self.session_id  = None
-            #self.planetlist.append( P4X_Planet() )
-            #self.shiplist.append( P4X_Spaceship() )
             if req.status==200:
                 self.multiplayer = True
                 dico = eval(req.text)
@@ -69,15 +68,7 @@ class Planets4Xgame():
                     self.session_id = dico["session_id"]
                     self.owncolorid = [int(dico["colorid_r"]),int(dico["colorid_g"]),int(dico["colorid_b"])]
                     self.boardsize  = [int(dico["boardsizex"]), int(dico["boardsizey"])]
-#                    self.planetlist[len(self.planetlist)-1].coord = [int(dico["homeplanetx"]),int(dico["homeplanety"])]
-#            self.shiplist[len(self.shiplist)-1].coord = self.planetlist[len(self.planetlist)-1].coord
-#            self.planetlist[len(self.planetlist)-1].ownership = self.owncolorid
-#            self.shiplist[len(self.shiplist)-1].ownership = self.owncolorid
-##            print("session_id: ", self.session_id)
-##            print("game_id: ", int(dico["game_id"]))
-##            print("freeplanets: ", int(dico["freeplanets"]))
-##            print("players: ", int(dico["players"]))
-##            print("homeplanet", self.planetlist[len(self.planetlist)-1].coord)
+                    self.boardcontrol = [[None for i in range(self.boardsize[1])] for j in range(self.boardsize[0])]
 
         def click(self, ev):
             cx = math.floor((ev.clientX/self.boardscale)-0.5)
@@ -98,7 +89,8 @@ class Planets4Xgame():
                 dico = eval(req.text)
                 if dico["action"] == "moveover" and dico["session_id"] == self.session_id:
                     for k in self.shiplist:
-                        k.coord = [int(dico["clickx"]), int(dico["clicky"])]
+                        if k.ownership == self.owncolorid:
+                            k.coord = [int(dico["clickx"]), int(dico["clicky"])]
 
         def drawBoard(self):
                 self.newPan = doc.createElementNS("http://www.w3.org/2000/svg","svg")
@@ -190,6 +182,57 @@ class Planets4Xgame():
                     self.newPan.children[k].setAttribute("fill", "rgb(255,255,255)")
                     self.newPan.children[k].setAttribute("fill-opacity", 0)
                     #print("S: ", len(self.shiplist), " ", k, " / ", self.newPan.childElementCount, " = ", self.newPan.children[k].tagName)
+
+            cnt = 0
+            for k in range(self.boardsize[0]):
+                for m in range(self.boardsize[1]):
+                    if self.boardcontrol[k][m] != None:
+                        for i in range(-1,2,2):
+                            if k+i>=0 and k+i<self.boardsize[0] and self.boardcontrol[k+i][m] != self.boardcontrol[k][m]:
+                                while ( cnt<self.newPan.childElementCount
+                                    and ( self.newPan.children[cnt].tagName!="line"
+                                        or ( abs(int(self.newPan.children[cnt].getAttribute("x1"))-int(self.newPan.children[cnt].getAttribute("x2")))==self.boardsize[0]*self.boardscale
+                                            or abs(int(self.newPan.children[cnt].getAttribute("y1"))-int(self.newPan.children[cnt].getAttribute("y2")))==self.boardsize[1]*self.boardscale ) ) ):
+                                    cnt = cnt + 1
+                                if cnt>=self.newPan.childElementCount:
+                                    line = svg.line(x1="0", y1="0", x2="1", y2="1", stroke=temp)
+                                    self.newPan.appendChild( line )
+                                col = self.boardcontrol[k][m]
+                                temp = "rgb("+str(col[0])+","+str(col[1])+","+str(col[2])+")"
+                                self.newPan.children[cnt].setAttribute("stroke", temp)
+                                self.newPan.children[cnt].setAttribute("x1", int(k+0.5+0.5*i)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("x2", int(k+0.5+0.5*i)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("y1", m*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("y2", (m+1)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("stroke-opacity", 1)
+                                if self.boardcontrol[k+i][m]==self.owncolorid: self.newPan.children[cnt].setAttribute("stroke-opacity", 0)
+                                cnt = cnt + 1
+                            if m+i>=0 and m+i<self.boardsize[1] and self.boardcontrol[k][m+i] != self.boardcontrol[k][m]:
+                                while ( cnt<self.newPan.childElementCount
+                                    and ( self.newPan.children[cnt].tagName!="line"
+                                        or ( abs(int(self.newPan.children[cnt].getAttribute("x1"))-int(self.newPan.children[cnt].getAttribute("x2")))==self.boardsize[0]*self.boardscale
+                                            or abs(int(self.newPan.children[cnt].getAttribute("y1"))-int(self.newPan.children[cnt].getAttribute("y2")))==self.boardsize[1]*self.boardscale ) ) ):
+                                    cnt = cnt + 1
+                                if cnt>=self.newPan.childElementCount:
+                                    line = svg.line(x1="0", y1="0", x2="1", y2="1", stroke=temp)
+                                    self.newPan.appendChild( line )
+                                col = self.boardcontrol[k][m]
+                                temp = "rgb("+str(col[0])+","+str(col[1])+","+str(col[2])+")"
+                                self.newPan.children[cnt].setAttribute("stroke", temp)
+                                self.newPan.children[cnt].setAttribute("x1", k*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("x2", (k+1)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("y1", int(m+0.5+0.5*i)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("y2", int(m+0.5+0.5*i)*self.boardscale)
+                                self.newPan.children[cnt].setAttribute("stroke-opacity", 1)
+                                if self.boardcontrol[k][m+i]==self.owncolorid: self.newPan.children[cnt].setAttribute("stroke-opacity", 0)
+                                cnt = cnt + 1
+            for k in range(cnt, self.newPan.childElementCount):
+                if ( self.newPan.children[k].tagName=="line"
+                    and ( abs(int(self.newPan.children[k].getAttribute("x1"))-int(self.newPan.children[k].getAttribute("x2")))!=self.boardsize[0]*self.boardscale
+                        or abs(int(self.newPan.children[k].getAttribute("y1"))-int(self.newPan.children[k].getAttribute("y2")))!=self.boardsize[1]*self.boardscale ) ):
+                    self.newPan.children[k].setAttribute("fill", "rgb(255,255,255)")
+                    self.newPan.children[k].setAttribute("fill-opacity", 0)
+
             for k in self.newPan.children:
                 if k.tagName == "polygon":
                     temp = self.newPan.removeChild( k )
@@ -228,6 +271,49 @@ class Planets4Xgame():
                         self.shiplist[len(self.shiplist)-1].ownership = [int(dico["r_"+temp]), int(dico["g_"+temp]), int(dico["b_"+temp])]
                         cnt = cnt + 1
                         temp = "spaceship" + str( cnt )
+
+                    bcstr = dico["boardcontrol"]
+                    for i, char in enumerate(bcstr):
+                        if char == "x":
+                            temp = ""
+                            j = 1
+                            while i-j>=0 and bcstr[i-j]!=" ":
+                                temp = bcstr[i-j] + temp
+                                j = j + 1
+                            x = int( temp )
+                            temp = ""
+                            j = 1
+                            while i+j<len(bcstr) and bcstr[i+j]!=":":
+                                temp = temp + bcstr[i+j]
+                                j = j + 1
+                            y = int( temp )
+                            col = [None,None,None]
+                            temp = ""
+                            while i+j<len(bcstr) and bcstr[i+j]!="[": j = j + 1
+                            j = j + 1
+                            while i+j<len(bcstr) and bcstr[i+j]!=",":
+                                temp = temp + bcstr[i+j]
+                                j = j+1
+                            if temp != "None": col[0] = int(temp)
+                            temp = ""
+                            j = j + 1
+                            while i+j<len(bcstr) and bcstr[i+j]!=",":
+                                temp = temp + bcstr[i+j]
+                                j = j+1
+                            if temp != "None": col[1] = int(temp)
+                            temp = ""
+                            j = j + 1
+                            while i+j<len(bcstr) and bcstr[i+j]!="]":
+                                temp = temp + bcstr[i+j]
+                                j = j+1
+                            if temp != "None": col[2] = int(temp)
+                            v = True
+                            for k in col:
+                                if k==None:
+                                    v = False
+                                    self.boardcontrol[x][y] = None
+                                    break
+                            if v: self.boardcontrol[x][y] = col
 
         def update(self,i):
                 raf(self.update)

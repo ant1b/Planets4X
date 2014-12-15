@@ -129,9 +129,11 @@ class P4X_Game():
         self.boardsize  = [1,1]
         self.planetlist = []
         self.shiplist   = []
+        self.boardcontrol = []
 
     def defineBoard(self, x, y):
         self.boardsize = [x,y]
+        self.boardcontrol = [[None for i in range(self.boardsize[1])] for j in range(self.boardsize[0])]
         #Distribute planet locations
         coorddraw = random.sample(range(self.boardsize[0]*self.boardsize[1]), math.floor((self.boardsize[0]*self.boardsize[1])*0.1))
         for i in range(len(coorddraw)):
@@ -183,6 +185,7 @@ class P4X_Server():
                 self.games[a].shiplist.append( P4X_Spaceship() )
                 self.games[a].shiplist[len(self.games[a].shiplist)-1].ownership = self.games[a].playerlist[b].session_id
                 self.games[a].shiplist[len(self.games[a].shiplist)-1].locateto(k.coord[0], k.coord[1])
+                self.games[a].boardcontrol[k.coord[0]][k.coord[1]] = self.games[a].playerlist[b].color
                 return
         #self.mutex.release()
 
@@ -217,20 +220,13 @@ def register():
     data = {'action': 'undefined'}
     if request.method == 'POST' and request.form.get('action')=='joingame':
         p4x_server.newcomer(int(request.form.get('boardsizex')), int(request.form.get('boardsizey')))
-        L = p4x_server.games[len(p4x_server.games)-1].playerlist[len(p4x_server.games[len(p4x_server.games)-1].playerlist)-1].ownedP4Xelements(p4x_server.games[len(p4x_server.games)-1].planetlist)
         data = {'action':'welcome',
             'session_id':str(p4x_server.session_list[len(p4x_server.session_list)-1]),
-#            'game_id':str(len(p4x_server.games)),
-#            'freeplanets':str(p4x_server.games[len(p4x_server.games)-1].freePlanetsCount()),
-#            'players':str(len(p4x_server.games[len(p4x_server.games)-1].playerlist)),
             'colorid_r':str(p4x_server.games[len(p4x_server.games)-1].playerlist[len(p4x_server.games[len(p4x_server.games)-1].playerlist)-1].color[0]),
             'colorid_g':str(p4x_server.games[len(p4x_server.games)-1].playerlist[len(p4x_server.games[len(p4x_server.games)-1].playerlist)-1].color[1]),
             'colorid_b':str(p4x_server.games[len(p4x_server.games)-1].playerlist[len(p4x_server.games[len(p4x_server.games)-1].playerlist)-1].color[2]),
             'boardsizex':str(p4x_server.games[len(p4x_server.games)-1].boardsize[0]),
-            'boardsizey':str(p4x_server.games[len(p4x_server.games)-1].boardsize[1]),
-#            'ownedplanets':str(len(L)),
-            'homeplanetx':str( L[0].coord[0] ),
-            'homeplanety':str( L[0].coord[1] )}
+            'boardsizey':str(p4x_server.games[len(p4x_server.games)-1].boardsize[1])}
     return jsonify(data)
 
 @app.route('/upknownuniverse', methods=['GET', 'POST'])
@@ -271,7 +267,6 @@ def upknownuniverse():
                             data["g_"+temp] = str( col[1] )
                             data["b_"+temp] = str( col[2] )
                             cnt = cnt + 1
-        #return jsonify(data)
         cnt = 0
         for k in p4x_server.games[a].shiplist:
             if k.ownership == request.form.get('session_id'):
@@ -299,21 +294,42 @@ def upknownuniverse():
                             data["g_"+temp] = str( col[1] )
                             data["b_"+temp] = str( col[2] )
                             cnt = cnt + 1
+        temp = ""
+        incl = []
+        for k in range(p4x_server.games[a].boardsize[0]):
+            for m in range(p4x_server.games[a].boardsize[1]):
+                if p4x_server.games[a].boardcontrol[k][m]==p4x_server.games[a].playerlist[b].color:
+                    for i in range(-1,2):
+                        for j in range(-1,2):
+                            if k+i>=0 and k+i<p4x_server.games[a].boardsize[0] and m+j>=0 and m+j<p4x_server.games[a].boardsize[1]:
+                                if not [k+i,m+j] in incl:
+                                    if IsOneTileMove(k,m,k+i,m+j):
+                                        if p4x_server.games[a].boardcontrol[k+i][m+j]==None:
+                                            temp = temp + " " + str(k+i) + "x" + str(m+j) + ":" + "[None,None,None]"
+                                        else:
+                                            temp = temp + " " + str(k+i) + "x" + str(m+j) + ":" + str(p4x_server.games[a].boardcontrol[k+i][m+j])
+                                        incl.append([k+i,m+j])
+        data["boardcontrol"] = temp
     return jsonify(data)
 
 @app.route('/clickonboard', methods=['POST'])
 def incaseofclick():
-    data = False
+    data = {"action", "undefined"}
     if request.method == 'POST' and request.form.get('action')=='clickonboard':
-        data = {"action":"moveover",
-            "session_id":request.form.get('session_id'),
-            "clickx":request.form.get('clickx'),
-            "clicky":request.form.get('clicky')}
         gp = p4x_server.ThisGameThisPlayer( request.form.get('session_id') )
         if not gp: return jsonify(data)
         for k in p4x_server.games[gp[0]].shiplist:
-            if k.ownership == request.form.get('session_id'):
-                k.locateto( int(request.form.get('clickx')),int(request.form.get('clicky')) )
+            if k.ownership == p4x_server.games[gp[0]].playerlist[gp[1]].session_id:
+                if IsOneTileMove(k.coord[0], k.coord[1], int(request.form.get('clickx')), int(request.form.get('clicky'))):
+                    k.locateto( int(request.form.get('clickx')),int(request.form.get('clicky')) )
+                    for m in p4x_server.games[gp[0]].planetlist:
+                        if k.coord[0]==m.coord[0] and k.coord[1]==m.coord[1]:
+                            m.ownership = k.ownership
+                            break
+                    p4x_server.games[gp[0]].boardcontrol[k.coord[0]][k.coord[1]] = p4x_server.games[gp[0]].playerlist[gp[1]].color
+                    data = {"action":"moveover", "session_id":request.form.get('session_id'),
+                        "clickx":k.coord[0], "clicky":k.coord[1]}
+                    return jsonify(data)
     return jsonify(data)
 
 if __name__ == '__main__':
